@@ -7,8 +7,12 @@ import time
 import os
 from datetime import datetime
 import matplotlib.pyplot as plt
-from ..model.transformer_model import EncoderOnlyTransformerModel
+
+import sys
+sys.path.append("..")
 from .dataset_loader import EnergyDataset
+from ..model.transformer_model import EncoderOnlyTransformerModel
+
 
 TRAIN_PATH = "../data/processed_data/train_dataset.csv"
 TEST_PATH = "../data/processed_data/test_dataset.csv"
