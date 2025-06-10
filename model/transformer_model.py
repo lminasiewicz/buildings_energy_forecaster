@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from postitional_encoding import PositionalEncoder
+from .postitional_encoding import PositionalEncoder
 
 
 class EncoderOnlyTransformerModel(nn.Module):
@@ -23,6 +23,7 @@ class EncoderOnlyTransformerModel(nn.Module):
         self.building_embedding = nn.Embedding(building_count, building_embed_dim)
 
         # Project full input (dynamic + embedding + static) to d_model
+        print(input_dim, building_embed_dim, static_feat_dim)
         self.input_projection = nn.Linear(input_dim + building_embed_dim + static_feat_dim, d_model)
         self.positional_encoder = PositionalEncoder(d_model=d_model, dropout=dropout)
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=False)
@@ -34,30 +35,31 @@ class EncoderOnlyTransformerModel(nn.Module):
             nn.Linear(d_model // 2, 1)  # Output one step at a time
         )
 
-    def forward(self, x, building_ids: torch.Tensor, static_feats: torch.Tensor, future_steps: int = 1) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, building_ids: torch.Tensor, static_feats: torch.Tensor, future_steps: int = 1) -> torch.Tensor:
         # x: [seq_len, batch_size, input_dim] (excluding building/static info)
         # building_ids: [batch_size]
         # static_feats: [batch_size, static_feat_dim]
 
-        seq_len, batch_size, _ = x.shape
+        batch_size, seq_len, _ = x.shape
         building_embed = self.building_embedding(building_ids)  # [batch_size, embed_dim]
 
+        if static_feats.dim() == 1:
+            static_feats = static_feats.unsqueeze(-1) # future-proof for the case when we have more static features than 1
+
         # Repeat across sequence
-        building_embed_seq = building_embed.unsqueeze(0).repeat(seq_len, 1, 1)  # [seq_len, batch_size, embed_dim]
-        static_feats_seq = static_feats.unsqueeze(0).repeat(seq_len, 1, 1)  # [seq_len, batch_size, static_feat_dim]
+        building_embed_seq = building_embed.unsqueeze(1).expand(-1, seq_len, -1)  # [batch_size, seq_len, input_dim]
+        static_feats_seq = static_feats.unsqueeze(1).expand(-1, seq_len, -1)  # [batch_size, seq_len, input_dim]
 
-        x = torch.cat([x, building_embed_seq, static_feats_seq], dim=-1)  # [seq_len, batch_size, input_dim + emb + static]
-        x = self.input_projection(x)  # [seq_len, batch_size, d_model]
+        x = torch.cat([x, building_embed_seq, static_feats_seq], dim=-1)  # [batch_size, seq_len, input_dim + emb + static]
+        x = self.input_projection(x)  # [batch_size, seq_len, d_model]
         x = self.positional_encoder(x)
-
-        x = self.encoder(x)  # [seq_len, batch_size, d_model]
-
-        last_step = x[-1]  # [batch_size, d_model]
+        x = self.encoder(x)  # [batch_size, seq_len, d_model]
 
         if future_steps == 1:
-            return self.regressor(last_step)  # [1, batch_size] 
+            out = self.regressor(x)  # [batch_size, seq_len, 1]
+            return out.squeeze(-1)   # [batch_size, seq_len]
 
-        # Rolling forecast
+        # Rolling forecast FIX THIS SOON!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         predictions = []
         current_step = last_step
         for _ in range(future_steps):

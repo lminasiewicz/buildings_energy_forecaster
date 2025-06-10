@@ -258,8 +258,8 @@ def extract_static_features(metadata_filepath: str, data_filepath: str, out_file
 def split_dataset_train_test(train_from_id: int, in_filepath: str, out_train_filepath: str, out_test_filepath: str, delimiter: str = ";") -> None:
     """Splits the dataset into train and test sets based on train_from_id - all entries before a given building ID are extracted to the test set, rest to train set"""
     data = np.genfromtxt(in_filepath, delimiter=delimiter, skip_header=True, dtype=str)
-    ids = data[:, 0]
-    split_id = np.searchsorted(ids, str(train_from_id), side="left")
+    ids = data[:, 0].astype(int)
+    split_id = ids.searchsorted(train_from_id, side="left")
     train_set = data[split_id:, :]
     test_set = data[:split_id, :]
     np.savetxt(out_train_filepath, train_set, delimiter=delimiter, fmt="%s")

@@ -5,10 +5,10 @@ import numpy as np
 
 class EnergyDataset(Dataset):
     def __init__(self, filepath: str, seq_length: int, static_lookup: dict[int, float]) -> None:
-        raw = np.loadtxt(filepath, delimiter=';', skiprows=1)
+        raw = np.loadtxt(filepath, delimiter=';', dtype=str)
         self.building_id = raw[:, 0].astype(int)
-        self.target = raw[:, 1]  # energy
-        self.features = raw[:, 2:].astype(np.float32)
+        self.target = raw[:, 1].astype(np.float32)  # energy
+        self.features = np.column_stack((raw[:, 2:-1].astype(np.float32), (raw[:, -1] == "True").astype(np.float32)))
         self.static_lookup = static_lookup
 
         self.samples = []
@@ -22,13 +22,13 @@ class EnergyDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    building_id, feat_seq, target_seq = self.samples[idx]
-    static_feat = self.static_lookup[building_id]
-    
-    return (
-        torch.tensor(building_id, dtype=torch.long), # Scalar tensor (for embedding, apparently good practice)
-        torch.tensor(feat_seq, dtype=torch.float32), # (seq_len, feat_dim)
-        torch.tensor(target_seq, dtype=torch.float32), # (seq_len,)
-        torch.tensor(static_feat, dtype=torch.float32), # (static_feat_dim,)
-    )
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        building_id, feat_seq, target_seq = self.samples[idx]
+        static_feat = self.static_lookup[building_id]
+        
+        return (
+            torch.tensor(building_id, dtype=torch.long), # Scalar tensor (for embedding, apparently good practice)
+            torch.tensor(feat_seq, dtype=torch.float32), # (seq_len, feat_dim)
+            torch.tensor(static_feat, dtype=torch.float32), # (static_feat_dim,)
+            torch.tensor(target_seq, dtype=torch.float32), # (seq_len,)
+        )
