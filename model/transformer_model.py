@@ -23,7 +23,6 @@ class EncoderOnlyTransformerModel(nn.Module):
         self.building_embedding = nn.Embedding(building_count, building_embed_dim)
 
         # Project full input (dynamic + embedding + static) to d_model
-        print(input_dim, building_embed_dim, static_feat_dim)
         self.input_projection = nn.Linear(input_dim + building_embed_dim + static_feat_dim, d_model)
         self.positional_encoder = PositionalEncoder(d_model=d_model, dropout=dropout)
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=False)
@@ -34,6 +33,11 @@ class EncoderOnlyTransformerModel(nn.Module):
             nn.ReLU(), # Add nonlinearity (apparently that's a good practice)
             nn.Linear(d_model // 2, 1)  # Output one step at a time
         )
+
+        # Only for params.txt
+        self.nhead = nhead
+        self.num_layers = num_layers
+        self.dropout = dropout
 
     def forward(self, x: torch.Tensor, building_ids: torch.Tensor, static_feats: torch.Tensor, future_steps: int = 1) -> torch.Tensor:
         # x: [seq_len, batch_size, input_dim] (excluding building/static info)
@@ -59,7 +63,7 @@ class EncoderOnlyTransformerModel(nn.Module):
             out = self.regressor(x)  # [batch_size, seq_len, 1]
             return out.squeeze(-1)   # [batch_size, seq_len]
 
-        # Rolling forecast FIX THIS SOON!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # Rolling forecast FIX THIS SOON!
         predictions = []
         current_step = last_step
         for _ in range(future_steps):

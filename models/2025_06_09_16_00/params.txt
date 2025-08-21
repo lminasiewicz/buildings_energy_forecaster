@@ -1,8 +1,0 @@
-EPOCHS = 20
-LEARNING_RATE = 1e-4
-BATCH_SIZE = 64
-SEQ_LENGTH = 48
-    d_model=32,
-    nhead=2,
-    num_layers=1,
-    dropout=0.4,

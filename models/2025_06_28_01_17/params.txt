@@ -1,0 +1,9 @@
+EPOCHS = 30
+LEARNING_RATE = 5e-05
+BATCH_SIZE = 32
+SEQ_LENGTH = 72
+WEIGHT_DECAY = 0.0001
+	d_model=256
+	nhead=8
+	num_layers=4
+	dropout=0.35

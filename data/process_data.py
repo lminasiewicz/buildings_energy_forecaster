@@ -266,6 +266,47 @@ def split_dataset_train_test(train_from_id: int, in_filepath: str, out_train_fil
     np.savetxt(out_test_filepath, test_set, delimiter=delimiter, fmt="%s")
 
 
+
+def get_ids_in_intervals(in_filepath: str, interval: int, delimiter: str = ";") -> None:
+    """Prints the unique building IDs throughout given intervals in a dataset file. Intended to ease manual train-test splitting. Expects a time-sorted file."""
+    data = np.genfromtxt(in_filepath, delimiter=delimiter, skip_header=True, dtype=str)
+    data_size = len(data)
+    unique_ids_all = []
+
+    i = 0
+    unique_ids = []
+    while i < data_size:
+        curr_id = int(data[i][0])
+        if curr_id not in unique_ids:
+            unique_ids.append(curr_id)
+        if i % interval == 0 and i!= 0:
+            unique_ids_all.append(sorted(unique_ids))
+            unique_ids = []
+        i += 1
+    
+    for i in range(data_size // interval):
+        print(f"{i * interval} - {(i+1) * interval}: {unique_ids_all[i]}")
+    print(f"{(data_size // interval) * interval} - {data_size}: {unique_ids_all[-1]}")
+
+
+
+def split_dataset_train_test_temporally_exclusive(test_from_point: int, test_from_id: int, in_filepath: str, out_train_filepath: str, out_test_filepath: str, delimiter: str = ";") -> None:
+    data = np.genfromtxt(in_filepath, delimiter=delimiter, skip_header=True, dtype=str)
+    train_set = data[:test_from_point, :]
+    test_set = data[test_from_point:, :]
+
+    train_bool_mask = (train_set[:, 0].astype(int) < test_from_id)
+    train_set = train_set[train_bool_mask].astype(str)
+    test_bool_mask = (test_set[:, 0].astype(int) >= test_from_id)
+    test_set = test_set[test_bool_mask].astype(str)
+    
+    np.savetxt(out_train_filepath, train_set, delimiter=delimiter, fmt="%s")
+    np.savetxt(out_test_filepath, test_set, delimiter=delimiter, fmt="%s")
+
+
+
+
+
 def main() -> None:
     # strip_dataset(57, "./raw_data/test-data.csv", "./intermediary_data/test-stripped.csv")
     # strip_dataset(57, "./raw_data/training-data.csv", "./intermediary_data/train-stripped.csv")
@@ -275,13 +316,20 @@ def main() -> None:
     # add_weekday_days_off("./intermediary_data/all_merged.csv", "./raw_data/metadata.csv", "./intermediary_data/merged_with_day_off.csv")
     # add_holiday_days_off("./intermediary_data/merged_with_day_off.csv", "./raw_data/holidays.csv", "./intermediary_data/merged_with_day_off_holidays.csv")
     # unwind_time_data("./intermediary_data/merged_with_day_off_holidays.csv", "./processed_data/full_dataset.csv")
-    split_dataset_train_test(9, "./processed_data/full_dataset.csv", "./processed_data/train_dataset.csv", "./processed_data/test_dataset.csv") # split at about 70/30 ratio
+    # split_dataset_train_test(9, "./processed_data/full_dataset.csv", "./processed_data/train_dataset.csv", "./processed_data/test_dataset.csv") # split at about 70/30 ratio
 
     # extract_static_features("./raw_data/metadata.csv", "./intermediary_data/all_merged.csv", "./processed_data/static_features.csv")
 
     # weather = np.genfromtxt("./raw_data/weather.csv", delimiter=";", skip_header=True, dtype=str)
     # data = np.genfromtxt("./intermediary_data/all_sliced.csv", delimiter=";", skip_header=False, dtype=str)
 
+    # data = np.genfromtxt("./intermediary_data/merged_with_day_off_holidays.csv", delimiter=";", skip_header=True, dtype=str)
+    # data = data[data[:, 2].argsort()]
+    # np.savetxt("./intermediary_data/timesort_merged_with_day_off_holidays.csv", data, delimiter=";", fmt="%s")
+
+    # get_ids_in_intervals("./intermediary_data/timesort_merged_with_day_off_holidays.csv", 50000)
+    # unwind_time_data("./intermediary_data/timesort_merged_with_day_off_holidays.csv", "./processed_data/alt_full_dataset.csv")
+    # split_dataset_train_test_temporally_exclusive(900000, 38, "./processed_data/alt_full_dataset.csv", "./processed_data/alt_train_dataset.csv", "./processed_data/alt_test_dataset.csv")
 
 
 if __name__ == "__main__":
