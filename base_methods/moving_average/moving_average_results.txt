@@ -1,4 +1,4 @@
-MAE: 55495.89249421105
+MAE: 45495.89249421105
 MSE: 84715217038.108997
 Total Dataset Size: 348578
 Insufficient Data for predictions: 10
