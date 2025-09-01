@@ -1,6 +1,7 @@
 import numpy as np
 from datetime import date
 import sys
+import math
 
 def strip_dataset(up_to: int, in_filepath: str, out_filepath: str, delimiter: str = ";") -> None:
     """Strip a dataset with building IDs to only contain data for buildings up to up_to ID.
@@ -215,13 +216,13 @@ def unwind_time_data(in_filepath: str, out_filepath: str, delimiter: str = ";") 
     timestamps = data[:, 2].astype("datetime64[m]")
 
     year = timestamps.astype("datetime64[Y]").astype(int) + 1970
-    month = timestamps.astype("datetime64[M]").astype(int) % 12 + 1
+    month = timestamps.astype("datetime64[M]").astype(int) % 12
     weekday = (timestamps.astype("datetime64[D]").astype("datetime64[W]").astype(int) + 4) % 7
     minutes = (timestamps - timestamps.astype("datetime64[D]")).astype(int)
 
     # Cyclic encodings
-    month_sin = np.round(np.sin(2 * np.pi * (month - 1) / 12), 4)
-    month_cos = np.round(np.cos(2 * np.pi * (month - 1) / 12), 4)
+    month_sin = np.round(np.sin(2 * np.pi * month / 12), 4)
+    month_cos = np.round(np.cos(2 * np.pi * month / 12), 4)
     weekday_sin = np.round(np.sin(2 * np.pi * weekday / 7), 4)
     weekday_cos = np.round(np.cos(2 * np.pi * weekday / 7), 4)
     time_sin = np.round(np.sin(2 * np.pi * minutes / (24 * 60)), 4)
@@ -330,6 +331,9 @@ def main() -> None:
     # get_ids_in_intervals("./intermediary_data/timesort_merged_with_day_off_holidays.csv", 50000)
     # unwind_time_data("./intermediary_data/timesort_merged_with_day_off_holidays.csv", "./processed_data/alt_full_dataset.csv")
     # split_dataset_train_test_temporally_exclusive(900000, 38, "./processed_data/alt_full_dataset.csv", "./processed_data/alt_train_dataset.csv", "./processed_data/alt_test_dataset.csv")
+
+    split_dataset_train_test(9, "./intermediary_data/merged_with_day_off_holidays.csv", "./processed_data/train_dataset_timestamped.csv", "./processed_data/test_dataset_timestamped.csv") # split at about 70/30 ratio
+
 
 
 if __name__ == "__main__":
